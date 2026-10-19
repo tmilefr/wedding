@@ -26,7 +26,7 @@
 <div class="adm">
   <header>
     <h1>Envoi des invitations</h1>
-    <div class="toolbar"><a class="btn ghost" href="/admin">← Retour à la liste</a></div>
+    <div class="toolbar"><a class="btn ghost" href="/admin">← Retour à la liste</a> <button class="btn ghost" onclick="fetch('/api/admin/logout',{method:'POST'}).then(()=>location.href='/admin/login')">Se déconnecter</button></div>
   </header>
 
   <div id="banner" class="banner" role="status">Chargement…</div>
