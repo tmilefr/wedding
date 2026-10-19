@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Espace des mariés</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="adm">
+  <header>
+    <h1>Espace des mariés</h1>
+    <div class="toolbar">
+      <a class="btn" href="/api/admin/export.xlsx" download>Télécharger l'Excel</a>
+      <button class="btn ghost" id="printCards">Imprimer les cartes QR</button>
+    </div>
+  </header>
+
+  <section class="tiles" id="tiles" aria-label="Chiffres clés"></section>
+
+  <section class="panel">
+    <h2>Ajouter des invités</h2>
+    <p class="muted">Un invité correspond à un lien : une personne, un couple ou une famille. Une ligne par invité, au format « Nom ; e-mail » (l'e-mail est facultatif).</p>
+    <label class="sr" for="bulk">Liste d'invités</label>
+    <textarea id="bulk" placeholder="Famille Martin ; martin@exemple.fr&#10;Claire Dubois ; claire@exemple.fr&#10;Paul et Léa"></textarea>
+    <p><button class="btn" id="addBtn" style="margin-top:.7rem">Ajouter à la liste</button> <span id="addMsg" class="muted" role="status"></span></p>
+  </section>
+
+  <section class="panel">
+    <div class="toolbar" style="margin-bottom:.8rem">
+      <h2 style="margin:0">Invités</h2>
+      <span class="grow"></span>
+      <label class="sr" for="filter">Rechercher</label>
+      <input type="text" id="filter" placeholder="Rechercher un invité" style="max-width:240px">
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Invité</th><th>Statut</th><th>Personnes</th><th>Couchages</th><th>Réponse</th><th>Lien</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p id="empty" class="muted" hidden>Aucun invité pour l'instant. Ajoutez-les ci-dessus pour générer leurs liens.</p>
+  </section>
+
+  <section class="cards" id="cards" aria-hidden="true"></section>
+</div>
+<script src="/admin.js"></script>
+</body>
+</html>
