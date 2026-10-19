@@ -117,7 +117,7 @@ function noteAttempt(ip, ok) {
 
 const app = express();
 app.disable('x-powered-by');
-app.use(express.json({ limit: '60kb' }));
+app.use((req, res, next) => (req.path === '/api/admin/import' ? next() : express.json({ limit: '60kb' })(req, res, next)));
 app.use((req, res, next) => {
   res.set('X-Content-Type-Options', 'nosniff');
   res.set('Referrer-Policy', 'same-origin');
@@ -136,7 +136,7 @@ app.get('/api/invite/:token', (req, res) => {
   if (!g) return res.status(404).json({ error: 'Lien inconnu' });
   const { couple, dateLabel, dateShort, intro, venue, lodging, program, specialtyIdeas, bringOptions } = config;
   res.json({
-    guest: { name: g.name, response: g.response || null },
+    guest: { name: g.name, members: g.members || [], response: g.response || null },
     config: { couple, dateLabel, dateShort, intro, venue, lodging, program, specialtyIdeas, bringOptions },
   });
 });
@@ -210,6 +210,117 @@ app.post('/api/admin/guests', adminOnly, (req, res) => {
   }
   save(db);
   res.json({ added });
+});
+
+// ---------- Import Excel des invités et de leur famille ----------
+// Feuille 1, une ligne par personne : Foyer | E-mail | Nom | Prénom | Âge.
+// Les lignes d'un même foyer partagent un lien ; un foyer vide reprend celui de la ligne précédente.
+const norm = (v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]/g, '');
+const IMPORT_COLS = {
+  household: ['foyer', 'invite', 'famille', 'groupe'],
+  email: ['email', 'mail', 'courriel'],
+  lastName: ['nom', 'nomdefamille'],
+  firstName: ['prenom'],
+  age: ['age'],
+};
+const cellText = (c) => {
+  const v = c && c.value;
+  if (v == null) return '';
+  if (typeof v === 'object') return String(v.text || v.result || (v.richText || []).map((t) => t.text).join('') || '');
+  return String(v);
+};
+
+async function parseGuestsWorkbook(buffer) {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buffer);
+  const ws = wb.worksheets[0];
+  if (!ws) throw new Error('Le fichier ne contient aucune feuille.');
+  const col = {};
+  ws.getRow(1).eachCell((c, n) => {
+    const key = Object.keys(IMPORT_COLS).find((k) => IMPORT_COLS[k].includes(norm(cellText(c))));
+    if (key && !col[key]) col[key] = n;
+  });
+  if (!col.household && !(col.firstName || col.lastName)) {
+    throw new Error('Colonnes introuvables : la première ligne doit contenir « Foyer », « E-mail », « Nom », « Prénom », « Âge ».');
+  }
+  const groups = [];
+  let current = null;
+  ws.eachRow((row, n) => {
+    if (n === 1) return;
+    const get = (k) => (col[k] ? cellText(row.getCell(col[k])).trim() : '');
+    const member = { lastName: str(get('lastName'), 60), firstName: str(get('firstName'), 60) };
+    const rawAge = get('age');
+    const age = rawAge === '' ? null : Math.round(Number(rawAge.replace(',', '.')));
+    if (Number.isFinite(age) && age >= 0 && age <= 120) member.age = age;
+    const hasMember = member.lastName || member.firstName;
+    let name = str(get('household'), 120);
+    if (!name && !hasMember) return; // ligne vide
+    if (!name && current) name = current.name;
+    if (!name) name = `${member.firstName} ${member.lastName}`.trim();
+    if (!current || current.name.toLowerCase() !== name.toLowerCase()) {
+      current = { name, email: '', members: [] };
+      groups.push(current);
+    }
+    const email = get('email');
+    if (email && !current.email) current.email = str(email, 200);
+    if (hasMember && current.members.length < 15) current.members.push(member);
+  });
+  return groups;
+}
+
+app.post('/api/admin/import', adminOnly, express.raw({ type: () => true, limit: '5mb' }), async (req, res) => {
+  if (!Buffer.isBuffer(req.body) || !req.body.length) return res.status(400).json({ error: 'Aucun fichier reçu.' });
+  let groups;
+  try {
+    groups = await parseGuestsWorkbook(req.body);
+  } catch (e) {
+    return res.status(400).json({ error: `Fichier Excel illisible : ${String(e.message || e).slice(0, 200)}` });
+  }
+  if (!groups.length) return res.status(400).json({ error: 'Aucun invité trouvé dans le fichier.' });
+  const db = load();
+  const known = new Set(db.guests.map((g) => g.name.toLowerCase()));
+  let added = 0, people = 0;
+  const skipped = [];
+  for (const g of groups.slice(0, 500)) {
+    if (known.has(g.name.toLowerCase())) { skipped.push(g.name); continue; }
+    known.add(g.name.toLowerCase());
+    db.guests.push({
+      id: crypto.randomUUID(),
+      token: newToken(),
+      name: g.name,
+      email: g.email,
+      members: g.members,
+      createdAt: new Date().toISOString(),
+      response: null,
+    });
+    added++;
+    people += g.members.length;
+  }
+  if (added) save(db);
+  res.json({ added, people, skipped });
+});
+
+app.get('/api/admin/import-template.xlsx', adminOnly, async (_, res) => {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Invités');
+  ws.columns = [
+    { header: 'Foyer', width: 26 }, { header: 'E-mail', width: 30 }, { header: 'Nom', width: 18 },
+    { header: 'Prénom', width: 18 }, { header: 'Âge', width: 8 },
+  ];
+  ws.addRows([
+    ['Famille Martin', 'martin@exemple.fr', 'Martin', 'Pierre', 45],
+    ['', '', 'Martin', 'Sophie', 43],
+    ['', '', 'Martin', 'Lucas', 12],
+    ['Claire Dubois', 'claire@exemple.fr', 'Dubois', 'Claire', ''],
+  ]);
+  ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF27422F' } };
+  res.set({
+    'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'Content-Disposition': 'attachment; filename="modele-import-invites.xlsx"',
+  });
+  await wb.xlsx.write(res);
+  res.end();
 });
 
 app.patch('/api/admin/guests/:id', adminOnly, (req, res) => {

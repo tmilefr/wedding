@@ -124,6 +124,20 @@
       await refresh();
     } catch (e) { $('addMsg').textContent = `Échec de l'ajout : ${e.message}`; }
   });
+  $('importBtn').addEventListener('click', async () => {
+    const f = $('xlsFile').files[0];
+    if (!f) { $('importMsg').textContent = 'Choisissez un fichier .xlsx.'; return; }
+    $('importMsg').textContent = 'Import…';
+    try {
+      const r = await fetch('/api/admin/import', { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: await f.arrayBuffer() });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || r.status);
+      $('xlsFile').value = '';
+      $('importMsg').textContent = `${d.added} foyer(s) importé(s) (${d.people} personne(s))` +
+        (d.skipped.length ? `, ${d.skipped.length} ignoré(s) car déjà présent(s) : ${d.skipped.slice(0, 5).join(', ')}${d.skipped.length > 5 ? '…' : ''}.` : '.');
+      await refresh();
+    } catch (e) { $('importMsg').textContent = `Échec de l'import : ${e.message}`; }
+  });
   $('sendInv').addEventListener('click', () => send([...selected], 'invitation'));
   $('sendRap').addEventListener('click', () => send([...selected], 'rappel'));
   $('testBtn').addEventListener('click', async () => {

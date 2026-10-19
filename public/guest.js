@@ -63,6 +63,9 @@
     document.getElementById('greeting').textContent = `Bonjour ${guest.name} !`;
     document.getElementById('names').textContent = `${cfg.couple.first} & ${cfg.couple.second}`;
     document.getElementById('date').textContent = `se marient le ${cfg.dateLabel}`;
+    if (!guest.response && guest.members && guest.members.length) {
+      state.people = guest.members.map((m) => ({ ...blankPerson(), firstName: m.firstName || '', lastName: m.lastName || '', age: m.age == null ? '' : m.age }));
+    }
     if (guest.response) {
       state = { ...state, ...guest.response, people: (guest.response.people && guest.response.people.length) ? guest.response.people : [blankPerson()] };
       mode = 'done';

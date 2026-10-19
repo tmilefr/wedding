@@ -40,6 +40,14 @@
   </section>
 
   <section class="panel">
+    <h2>Importer depuis Excel</h2>
+    <p class="muted">Un fichier <strong>.xlsx</strong>, une ligne par personne, avec les colonnes <em>Foyer, E-mail, Nom, Prénom, Âge</em>. Les personnes d'un même foyer partagent un seul lien (laissez « Foyer » vide pour reprendre celui de la ligne du dessus). Les membres sont préremplis dans le formulaire de l'invité. Les foyers déjà présents sont ignorés.</p>
+    <label class="sr" for="xlsFile">Fichier Excel</label>
+    <input type="file" id="xlsFile" accept=".xlsx">
+    <p><button class="btn" id="importBtn" style="margin-top:.7rem">Importer</button> <a class="btn ghost" href="/api/admin/import-template.xlsx">Télécharger le modèle</a> <span id="importMsg" class="muted" role="status"></span></p>
+  </section>
+
+  <section class="panel">
     <h2>Tester l'envoi</h2>
     <p class="muted">Recevez un exemple de l'e-mail (avec un lien factice) pour vérifier le rendu et l'envoi.</p>
     <div class="test">
