@@ -137,6 +137,14 @@ app.get('/api/admin/guests', adminOnly, (_, res) => {
   res.json({ guests, couple: config.couple, bringOptions: config.bringOptions });
 });
 
+app.get('/admin/invite/:id', adminOnly, (_, res) => res.sendFile(path.join(__dirname, 'public/admin-guest.html')));
+app.get('/admin-guest.js', adminOnly, (_, res) => res.sendFile(path.join(__dirname, 'public/admin-guest.js')));
+app.get('/api/admin/guests/:id', adminOnly, (req, res) => {
+  const g = load().guests.find((x) => x.id === req.params.id);
+  if (!g) return res.status(404).json({ error: 'Invité inconnu' });
+  res.json({ guest: { ...g, link: linkFor(g) }, couple: config.couple, bringOptions: config.bringOptions });
+});
+
 app.post('/api/admin/guests', adminOnly, (req, res) => {
   const list = Array.isArray(req.body.guests) ? req.body.guests : [];
   const db = load();

@@ -76,6 +76,7 @@
         h('td', {}, r && r.attending ? String(r.people.filter((p) => p.sleepsOnSite).length) : '—'),
         h('td', {}, respDetails(g)),
         h('td', {}, h('div', { class: 'actions' },
+          h('a', { class: 'btn small', href: `/admin/invite/${g.id}` }, 'Détail'),
           copyBtn,
           h('a', { class: 'btn ghost small', href: `/api/admin/qr/${g.id}.svg`, target: '_blank', rel: 'noopener' }, 'QR'),
           h('button', { class: 'btn link small', onclick: async () => {
