@@ -86,6 +86,10 @@ Les invités peuvent corriger leurs réponses tant que leur invité n'est pas su
 
 ## Envoi des e-mails
 
+### Import Excel des invités et de leur famille
+
+Dans `/admin/envois`, le panneau « Importer depuis Excel » accepte un `.xlsx` (modèle téléchargeable) : une ligne par personne, colonnes `Foyer`, `E-mail`, `Nom`, `Prénom`, `Âge`. Les personnes d'un même foyer partagent un seul lien (un `Foyer` vide reprend celui de la ligne précédente). Les membres sont préremplis dans le formulaire de l'invité, qui peut les corriger. Les foyers dont le nom existe déjà sont ignorés (pas de doublon si on réimporte).
+
 L'écran `/admin/envois` permet d'abord d'**ajouter des invités** (une ligne par invité, `Nom ; e-mail`), puis liste les invités avec, pour chacun : la réponse, l'état d'envoi (`Jamais envoyé`, `Envoyé le …`, `Échec`), un bouton **Aperçu** et un bouton **Envoyer** (ou **Renvoyer**).
 
 - **Filtres** : Tous, Jamais envoyé, Sans réponse, Sans e-mail.
