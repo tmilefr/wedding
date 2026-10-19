@@ -4,6 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const ExcelJS = require('exceljs');
 const QRCode = require('qrcode');
+const nodemailer = require('nodemailer');
 const config = require('./config');
 
 const PORT = process.env.PORT || 3000;
@@ -190,6 +191,146 @@ app.get('/api/admin/qr/:id.svg', adminOnly, async (req, res) => {
   res.type('image/svg+xml').send(svg);
 });
 
+
+// ---------- E-mails ----------
+const SMTP = {
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT || 587),
+  secure: process.env.SMTP_SECURE === 'true',
+  user: process.env.SMTP_USER,
+  pass: process.env.SMTP_PASS,
+  from: process.env.SMTP_FROM || process.env.SMTP_USER,
+};
+const mailConfigured = Boolean(SMTP.host && SMTP.from);
+const transport = mailConfigured
+  ? nodemailer.createTransport({
+      host: SMTP.host, port: SMTP.port, secure: SMTP.secure,
+      auth: SMTP.user ? { user: SMTP.user, pass: SMTP.pass } : undefined,
+    })
+  : null;
+const OUTBOX = path.join(DATA_DIR, 'outbox');
+const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const validEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e || '');
+const qrPng = (link) => QRCode.toBuffer(link, { margin: 1, width: 360, errorCorrectionLevel: 'M', color: { dark: '#27422f', light: '#ffffff' } });
+
+function buildMail(g, kind, qrSrc) {
+  const m = config.mail;
+  const link = linkFor(g);
+  const rappel = kind === 'rappel';
+  const subject = rappel ? m.subjectRappel : m.subjectInvitation;
+  const intro = rappel ? m.rappelText : m.invitationText;
+  const names = `${config.couple.first} & ${config.couple.second}`;
+  const text = [
+    `Bonjour ${g.name},`, '', intro, '',
+    `Pour répondre, ouvrez votre lien personnel : ${link}`, '',
+    `Lieu : ${config.venue.name}, ${config.venue.address}.`, '',
+    m.signature,
+  ].join('\n');
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:0;background:#e6edd9;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e6edd9;padding:24px 12px;">
+<tr><td align="center">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#fbfcf5;border:1px solid #bccaa9;border-radius:14px;">
+<tr><td align="center" style="padding:28px 28px 8px;font-family:Georgia,'Times New Roman',serif;">
+  <div style="font-size:30px;line-height:1.15;color:#c0392b;font-style:italic;">Bonjour ${esc(g.name)} !</div>
+  <div style="font-size:26px;line-height:1.2;color:#27422f;font-weight:bold;margin-top:8px;">${esc(names)}</div>
+  <div style="font-size:15px;color:#5d7062;margin-top:4px;">se marient le ${esc(config.dateLabel)}</div>
+</td></tr>
+<tr><td style="padding:16px 32px 8px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#2b3a2e;">
+  <p style="margin:0 0 14px;">${esc(intro)}</p>
+  <p style="margin:0 0 6px;color:#5d7062;font-size:14px;">Lieu : ${esc(config.venue.name)}, ${esc(config.venue.address)}</p>
+</td></tr>
+<tr><td align="center" style="padding:10px 32px 6px;">
+  <a href="${esc(link)}" style="display:inline-block;background:#c0392b;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-weight:bold;font-size:16px;text-decoration:none;padding:14px 28px;border-radius:10px;">${esc(m.buttonLabel)}</a>
+</td></tr>
+<tr><td align="center" style="padding:18px 32px 4px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#5d7062;">
+  Ou scannez ce QR code avec votre téléphone :<br>
+  <img src="${qrSrc}" width="160" height="160" alt="QR code personnel de ${esc(g.name)}" style="margin-top:8px;border:0;">
+</td></tr>
+<tr><td align="center" style="padding:8px 32px 6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#5d7062;word-break:break-all;">
+  <a href="${esc(link)}" style="color:#4a6aa3;">${esc(link)}</a>
+</td></tr>
+<tr><td align="center" style="padding:14px 32px 28px;font-family:Georgia,serif;font-size:18px;color:#27422f;">${esc(m.signature)}</td></tr>
+</table>
+<div style="font-family:Arial,sans-serif;font-size:12px;color:#5d7062;margin-top:12px;max-width:520px;">Ce lien est personnel : il vous permet de répondre et de modifier vos réponses à tout moment.</div>
+</td></tr></table></body></html>`;
+  return { subject, text, html };
+}
+
+async function deliver(g, kind, to) {
+  const png = await qrPng(linkFor(g));
+  if (!transport) {
+    // Mode simulation : aucun e-mail réel, l'aperçu est enregistré dans data/outbox
+    fs.mkdirSync(OUTBOX, { recursive: true });
+    const m = buildMail(g, kind, `data:image/png;base64,${png.toString('base64')}`);
+    const file = path.join(OUTBOX, `${new Date().toISOString().replace(/[:.]/g, '-')}_${(g.id || 'test').slice(0, 8)}_${kind}.html`);
+    fs.writeFileSync(file, `<!-- À : ${to} | Objet : ${m.subject} -->\n${m.html}`);
+    return { simulated: true };
+  }
+  const m = buildMail(g, kind, 'cid:qrcode');
+  await transport.sendMail({
+    from: SMTP.from, to, subject: m.subject, text: m.text, html: m.html,
+    attachments: [{ filename: 'qrcode.png', content: png, cid: 'qrcode' }],
+  });
+  return { simulated: false };
+}
+
+app.get('/api/admin/mail-status', adminOnly, (_, res) => res.json({ configured: mailConfigured, from: SMTP.from || null }));
+
+app.get('/api/admin/mail-preview/:id', adminOnly, async (req, res) => {
+  const g = load().guests.find((x) => x.id === req.params.id);
+  if (!g) return res.status(404).end();
+  const kind = req.query.kind === 'rappel' ? 'rappel' : 'invitation';
+  const png = await qrPng(linkFor(g));
+  res.type('html').send(buildMail(g, kind, `data:image/png;base64,${png.toString('base64')}`).html);
+});
+
+app.post('/api/admin/send', adminOnly, async (req, res) => {
+  const kind = req.body.kind === 'rappel' ? 'rappel' : 'invitation';
+  const ids = (Array.isArray(req.body.ids) ? req.body.ids : []).slice(0, 300);
+  const guests = load().guests;
+  const results = [];
+  for (const id of ids) {
+    const g = guests.find((x) => x.id === id);
+    if (!g) continue;
+    if (!validEmail(g.email)) { results.push({ id, name: g.name, ok: false, error: 'Adresse e-mail absente ou invalide' }); continue; }
+    try {
+      const r = await deliver(g, kind, g.email);
+      results.push({ id, name: g.name, ok: true, simulated: r.simulated });
+    } catch (e) {
+      results.push({ id, name: g.name, ok: false, error: String(e.message || e).slice(0, 200) });
+    }
+    await new Promise((r) => setTimeout(r, 250)); // ne pas saturer le serveur SMTP
+  }
+  // Recharger avant d'écrire : des réponses ont pu arriver pendant l'envoi
+  const db = load();
+  const now = new Date().toISOString();
+  for (const r of results) {
+    const g = db.guests.find((x) => x.id === r.id);
+    if (!g) continue;
+    const prev = g.mail || {};
+    g.mail = r.ok
+      ? { sentAt: now, kind, count: (prev.count || 0) + 1, simulated: r.simulated || false }
+      : { ...prev, error: r.error, errorAt: now };
+  }
+  save(db);
+  res.json({ results, simulated: !mailConfigured });
+});
+
+app.post('/api/admin/send-test', adminOnly, async (req, res) => {
+  const to = str(req.body.to, 200);
+  if (!validEmail(to)) return res.status(400).json({ error: 'Adresse e-mail invalide.' });
+  try {
+    const sample = { id: 'test', token: 'exemple', name: 'Famille Exemple' };
+    const r = await deliver(sample, req.body.kind === 'rappel' ? 'rappel' : 'invitation', to);
+    res.json({ ok: true, simulated: r.simulated });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e).slice(0, 200) });
+  }
+});
+
+app.get('/admin/envois', adminOnly, (_, res) => res.sendFile(path.join(__dirname, 'public/admin-envois.html')));
+app.get('/admin-envois.js', adminOnly, (_, res) => res.sendFile(path.join(__dirname, 'public/admin-envois.js')));
+
 // ---------- Export Excel ----------
 app.get('/api/admin/export.xlsx', adminOnly, async (_, res) => {
   const guests = load().guests;
@@ -221,7 +362,7 @@ app.get('/api/admin/export.xlsx', adminOnly, async (_, res) => {
     { header: 'Personnes' }, { header: 'Adultes (18+)' }, { header: 'Enfants (<18)' }, { header: 'Couchages sur place' },
     { header: 'Présent vendredi' }, { header: 'Aide à la préparation' }, { header: 'Repas du vendredi soir' },
     { header: 'Apporte' }, { header: 'Spécialité régionale' }, { header: 'Prolonge jusqu\'au lundi' },
-    { header: 'Brunch dimanche' }, { header: 'Rangement' }, { header: 'Commentaire' },
+    { header: 'Brunch dimanche' }, { header: 'Rangement' }, { header: 'Commentaire' }, { header: 'Invitation envoyée le' },
   ];
   for (const g of guests) {
     const r = g.response;
@@ -238,10 +379,12 @@ app.get('/api/admin/export.xlsx', adminOnly, async (_, res) => {
       att ? (r.regionalHas ? r.regionalDetail || 'Oui' : 'Non') : '',
       att ? yn(r.extendMonday) : '', att ? yn(r.brunch) : '', att ? yn(r.cleanup) : '',
       r ? r.comment : '',
+      g.mail && g.mail.sentAt ? new Date(g.mail.sentAt) : '',
     ]);
   }
   ws1.getColumn(4).numFmt = 'dd/mm/yyyy hh:mm';
-  style(ws1, [24, 26, 12, 17, 11, 11, 11, 13, 11, 13, 13, 30, 38, 14, 12, 11, 40]);
+  ws1.getColumn(18).numFmt = 'dd/mm/yyyy hh:mm';
+  style(ws1, [24, 26, 12, 17, 11, 11, 11, 13, 11, 13, 13, 30, 38, 14, 12, 11, 40, 17]);
 
   // 2. Participants : une ligne par personne
   const ws2 = wb.addWorksheet('Participants');

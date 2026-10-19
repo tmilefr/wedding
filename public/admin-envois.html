@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Envoi des invitations</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+  .banner { border-radius: 12px; padding: .8rem 1rem; margin-bottom: 1.2rem; font-size: .97rem; }
+  .banner.sim { background: #f8efd0; border: 1.5px solid var(--ble); }
+  .banner.live { background: #e0eed3; border: 1.5px solid #9dbb87; }
+  .tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+  .tab { font: 600 .92rem var(--main); border: 1.5px solid var(--trait); background: #fff; border-radius: 999px; padding: .35rem .95rem; cursor: pointer; color: var(--encre); }
+  .tab[aria-pressed=true] { background: var(--foret); border-color: var(--foret); color: #fff; }
+  .sendbar { position: sticky; bottom: 0; background: var(--feuille); border: 1.5px solid var(--trait); border-radius: 14px; padding: .8rem 1rem; display: flex; flex-wrap: wrap; gap: .7rem; align-items: center; box-shadow: 0 -4px 14px rgba(39,66,47,.12); margin-top: 1rem; }
+  .sendbar .grow { flex: 1 1 140px; font-weight: 700; color: var(--foret); }
+  td input[type=checkbox], th input[type=checkbox] { width: 1.2rem; height: 1.2rem; accent-color: var(--foret); }
+  .result { margin-top: 1rem; }
+  .result li { margin: .15rem 0; }
+  .test { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+  .test input { max-width: 300px; }
+</style>
+</head>
+<body>
+<div class="adm">
+  <header>
+    <h1>Envoi des invitations</h1>
+    <div class="toolbar"><a class="btn ghost" href="/admin">← Retour à la liste</a></div>
+  </header>
+
+  <div id="banner" class="banner" role="status">Chargement…</div>
+
+  <section class="panel">
+    <h2>Tester l'envoi</h2>
+    <p class="muted">Recevez un exemple de l'e-mail (avec un lien factice) pour vérifier le rendu et l'envoi.</p>
+    <div class="test">
+      <label class="sr" for="testTo">Votre adresse e-mail</label>
+      <input type="text" id="testTo" placeholder="vous@exemple.fr" autocomplete="email">
+      <button class="btn ghost" id="testBtn">Envoyer un e-mail test</button>
+      <span id="testMsg" class="muted" role="status"></span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Invités</h2>
+    <div class="tabs" id="tabs" role="group" aria-label="Filtrer la liste"></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th><input type="checkbox" id="all" aria-label="Tout sélectionner"></th>
+          <th>Invité</th><th>Réponse</th><th>E-mail envoyé</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p id="empty" class="muted" hidden>Aucun invité dans cette vue.</p>
+
+    <div class="sendbar">
+      <span class="grow" id="count">0 sélectionné</span>
+      <button class="btn" id="sendInv" disabled>Envoyer l'invitation</button>
+      <button class="btn ghost" id="sendRap" disabled>Envoyer un rappel</button>
+    </div>
+    <div class="result" id="result" role="status"></div>
+  </section>
+</div>
+<script src="/admin-envois.js"></script>
+</body>
+</html>

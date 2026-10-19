@@ -40,7 +40,8 @@
       h('div', { class: 'panel' },
         h('div', { class: 'toolbar' }, h('h1', {}, g.name), badge),
         r ? h('p', { class: 'muted', style: 'margin:.4rem 0 0' }, `Réponse du ${fmt(g.respondedAt)}`) : null,
-        g.email ? h('p', { class: 'muted', style: 'margin:.2rem 0 0' }, g.email) : null),
+        g.email ? h('p', { class: 'muted', style: 'margin:.2rem 0 0' }, g.email) : null,
+        h('p', { class: 'muted', style: 'margin:.2rem 0 0' }, g.mail && g.mail.sentAt ? `Invitation envoyée le ${fmt(g.mail.sentAt)}${g.mail.count > 1 ? ` (${g.mail.count} envois)` : ''}` : 'Invitation pas encore envoyée')),
     ];
 
     if (r && r.attending) {

@@ -4,10 +4,13 @@
   "private": true,
   "description": "Site de mariage champêtre : invitations par lien unique, questionnaire, export Excel",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
     "exceljs": "^4.4.0",
     "express": "^4.19.2",
+    "nodemailer": "^10.1.7",
     "qrcode": "^1.5.4"
   }
 }
