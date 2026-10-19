@@ -24,7 +24,7 @@
 </head>
 <body>
 <div class="adm fiche">
-  <div class="top noprint"><a href="/admin">← Retour à la liste</a><button class="btn ghost small" onclick="window.print()">Imprimer la fiche</button></div>
+  <div class="top noprint"><a href="/admin">← Retour à la liste</a><button class="btn ghost small" onclick="window.print()">Imprimer la fiche</button> <button class="btn ghost small" onclick="fetch('/api/admin/logout',{method:'POST'}).then(()=>location.href='/admin/login')">Se déconnecter</button></div>
   <div class="fiche-print" id="fiche">Chargement…</div>
 </div>
 <script src="/admin-guest.js"></script>
