@@ -14,9 +14,14 @@
   }
   const api = async (url, opts) => {
     const r = await fetch(url, opts && { headers: { 'Content-Type': 'application/json' }, ...opts });
+    if (r.status === 401) { location.href = '/admin/login'; throw new Error(401); }
     if (!r.ok) throw new Error(r.status);
     return r.json();
   };
+  $('logout').addEventListener('click', async () => {
+    await fetch('/api/admin/logout', { method: 'POST' });
+    location.href = '/admin/login';
+  });
 
   async function refresh() {
     const d = await api('/api/admin/guests');

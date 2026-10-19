@@ -63,7 +63,7 @@ $env:ADMIN_PASSWORD="un-mot-de-passe-solide"; $env:BASE_URL="http://localhost:30
 
 | Page | Adresse |
 |---|---|
-| Espace des mariés | `http://localhost:3000/admin` (identifiant `maries`, mot de passe = `ADMIN_PASSWORD`) |
+| Espace des mariés | `http://localhost:3000/admin` (formulaire de connexion : identifiant `maries`, mot de passe = `ADMIN_PASSWORD`) |
 | Écran d'envoi des invitations | `http://localhost:3000/admin/envois` |
 | Page d'un invité | `http://localhost:3000/i/<jeton>` (le lien est donné dans l'espace des mariés) |
 
@@ -207,7 +207,7 @@ mariage/
 
 ## API
 
-Les routes `/api/admin/*` et les pages `/admin*` exigent l'authentification HTTP Basic.
+Les routes `/api/admin/*` et les pages `/admin*` exigent une connexion : formulaire sur `/admin/login`, puis cookie de session (12 h). Sans session, les pages redirigent vers le formulaire et l'API répond `401`.
 
 ### Invités
 
