@@ -74,19 +74,45 @@ function cleanResponse(b) {
   return r;
 }
 
-// ---------- Auth admin (HTTP Basic) ----------
+// ---------- Auth admin (formulaire + cookie signé) ----------
+const SESSION_MS = 12 * 60 * 60 * 1000;
+const SESSION_KEY = crypto.createHash('sha256').update(`session:${ADMIN_USER}:${ADMIN_PASSWORD}`).digest();
 function safeEq(a, b) {
   const ha = crypto.createHash('sha256').update(a).digest();
   const hb = crypto.createHash('sha256').update(b).digest();
   return crypto.timingSafeEqual(ha, hb);
 }
-function adminOnly(req, res, next) {
-  const h = req.headers.authorization || '';
-  if (h.startsWith('Basic ')) {
-    const [u, ...rest] = Buffer.from(h.slice(6), 'base64').toString().split(':');
-    if (safeEq(u, ADMIN_USER) && safeEq(rest.join(':'), ADMIN_PASSWORD)) return next();
+function sign(v) {
+  return crypto.createHmac('sha256', SESSION_KEY).update(v).digest('base64url');
+}
+function readCookie(req, name) {
+  for (const part of (req.headers.cookie || '').split(';')) {
+    const i = part.indexOf('=');
+    if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim();
   }
-  res.set('WWW-Authenticate', 'Basic realm="Espace des mariés"').status(401).send('Authentification requise');
+  return null;
+}
+function isLoggedIn(req) {
+  const [exp, sig] = (readCookie(req, 'admin_session') || '').split('.');
+  return !!(exp && sig && Number(exp) > Date.now() && safeEq(sig, sign(exp)));
+}
+function adminOnly(req, res, next) {
+  if (isLoggedIn(req)) return next();
+  if (req.originalUrl.startsWith('/api/')) return res.status(401).json({ error: 'Authentification requise' });
+  res.redirect('/admin/login');
+}
+const cookieFlags = `Path=/; HttpOnly; SameSite=Strict${BASE_URL.startsWith('https://') ? '; Secure' : ''}`;
+
+// Freine les tentatives répétées (en mémoire, par adresse IP)
+const attempts = new Map();
+function tooManyAttempts(ip) {
+  const a = attempts.get(ip);
+  return !!a && a.count >= 5 && Date.now() - a.last < 60 * 1000;
+}
+function noteAttempt(ip, ok) {
+  if (ok) return attempts.delete(ip);
+  const a = attempts.get(ip) || { count: 0, last: 0 };
+  attempts.set(ip, { count: Date.now() - a.last < 60 * 1000 ? a.count + 1 : 1, last: Date.now() });
 }
 
 const app = express();
@@ -130,6 +156,25 @@ app.post('/api/invite/:token', (req, res) => {
 });
 
 // ---------- Espace des mariés ----------
+app.get('/admin/login', (req, res) => {
+  if (isLoggedIn(req)) return res.redirect('/admin');
+  res.sendFile(path.join(__dirname, 'public/admin-login.html'));
+});
+app.post('/api/admin/login', (req, res) => {
+  if (tooManyAttempts(req.ip)) return res.status(429).json({ error: 'Trop de tentatives. Réessayez dans une minute.' });
+  const { user, password } = req.body || {};
+  const ok = typeof user === 'string' && typeof password === 'string' && safeEq(user, ADMIN_USER) && safeEq(password, ADMIN_PASSWORD);
+  noteAttempt(req.ip, ok);
+  if (!ok) return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect.' });
+  const exp = String(Date.now() + SESSION_MS);
+  res.set('Set-Cookie', `admin_session=${exp}.${sign(exp)}; Max-Age=${SESSION_MS / 1000}; ${cookieFlags}`);
+  res.json({ ok: true });
+});
+app.post('/api/admin/logout', (_, res) => {
+  res.set('Set-Cookie', `admin_session=; Max-Age=0; ${cookieFlags}`);
+  res.json({ ok: true });
+});
+app.get('/admin-login.js', (_, res) => res.sendFile(path.join(__dirname, 'public/admin-login.js')));
 app.get('/admin', adminOnly, (_, res) => res.sendFile(path.join(__dirname, 'public/admin.html')));
 app.get('/admin.js', adminOnly, (_, res) => res.sendFile(path.join(__dirname, 'public/admin.js')));
 

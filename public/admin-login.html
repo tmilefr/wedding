@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Connexion · Espace des mariés</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="adm">
+  <section class="panel" style="max-width:380px;margin:4rem auto">
+    <h1 style="font-size:1.6rem">Espace des mariés</h1>
+    <form id="login" autocomplete="on">
+      <p><label for="user">Identifiant</label>
+        <input type="text" id="user" name="username" autocomplete="username" required autofocus></p>
+      <p><label for="password">Mot de passe</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required></p>
+      <p id="err" role="alert" style="color:var(--coquelicot)" hidden></p>
+      <button class="btn" type="submit">Se connecter</button>
+    </form>
+  </section>
+</div>
+<script src="/admin-login.js"></script>
+</body>
+</html>
