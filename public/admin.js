@@ -97,14 +97,6 @@
   function render() { tiles(); rows(); cards(); }
 
   $('filter').addEventListener('input', rows);
-  $('addBtn').addEventListener('click', async () => {
-    const lines = $('bulk').value.split('\n').map((l) => l.trim()).filter(Boolean);
-    const list = lines.map((l) => { const [name, email] = l.split(/[;\t]/).map((s) => s.trim()); return { name, email: email || '' }; });
-    if (!list.length) { $('addMsg').textContent = 'Saisissez au moins un invité.'; return; }
-    const r = await api('/api/admin/guests', { method: 'POST', body: JSON.stringify({ guests: list }) });
-    $('bulk').value = ''; $('addMsg').textContent = `${r.added} invité(s) ajouté(s).`;
-    refresh();
-  });
   $('printCards').addEventListener('click', () => window.print());
   refresh();
 })();

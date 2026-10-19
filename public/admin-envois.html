@@ -32,6 +32,14 @@
   <div id="banner" class="banner" role="status">Chargement…</div>
 
   <section class="panel">
+    <h2>Ajouter des invités</h2>
+    <p class="muted">Un invité correspond à un lien : une personne, un couple ou une famille. Une ligne par invité, au format « Nom ; e-mail » (l'e-mail est facultatif, par exemple pour un carton avec QR code).</p>
+    <label class="sr" for="bulk">Liste d'invités</label>
+    <textarea id="bulk" placeholder="Famille Martin ; martin@exemple.fr&#10;Claire Dubois ; claire@exemple.fr&#10;Paul et Léa"></textarea>
+    <p><button class="btn" id="addBtn" style="margin-top:.7rem">Ajouter à la liste</button> <span id="addMsg" class="muted" role="status"></span></p>
+  </section>
+
+  <section class="panel">
     <h2>Tester l'envoi</h2>
     <p class="muted">Recevez un exemple de l'e-mail (avec un lien factice) pour vérifier le rendu et l'envoi.</p>
     <div class="test">
@@ -54,7 +62,7 @@
         <tbody id="rows"></tbody>
       </table>
     </div>
-    <p id="empty" class="muted" hidden>Aucun invité dans cette vue.</p>
+    <p id="empty" class="muted" hidden></p>
 
     <div class="sendbar">
       <span class="grow" id="count">0 sélectionné</span>

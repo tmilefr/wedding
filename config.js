@@ -72,6 +72,18 @@ module.exports = {
     'Spécialités mexicaines',
   ],
 
+  // Textes des e-mails d'invitation et de rappel
+  mail: {
+    subjectInvitation: 'Notre mariage le 27 août 2027 : répondez à votre invitation',
+    subjectRappel: 'Rappel : votre réponse à notre invitation de mariage',
+    invitationText:
+      "Nous nous marions le samedi 27 août 2027 et nous serions très heureux de vous compter parmi nous. Pour préparer au mieux cette fête, conviviale et participative, nous avons besoin de vos réponses : présence, couchages, repas, spécialités à partager.",
+    rappelText:
+      "Petit rappel : nous n'avons pas encore reçu votre réponse à notre invitation. Cela nous aiderait beaucoup de la connaître pour organiser le week-end.",
+    buttonLabel: 'Répondre à l\'invitation',
+    signature: 'Prénom1 & Prénom2', // À REMPLACER
+  },
+
   bringOptions: [
     { key: 'salade', label: 'Une salade' },
     { key: 'viande', label: 'De la viande' },

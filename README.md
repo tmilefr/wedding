@@ -38,9 +38,9 @@ Site sur mesure pour gérer les réponses des invités d'un mariage champêtre (
 
 ### Côté mariés (`/admin`)
 - Chiffres clés : invitations, réponses, personnes présentes, couchages, repas du vendredi, brunch, lundi.
-- Liste des invités, ajout en masse (« Nom ; e-mail »), recherche, copie du lien, QR code, suppression.
+- Liste des invités : recherche, copie du lien, QR code, suppression.
 - **Fiche détaillée par famille** (`Détail`) : personnes, régimes, week-end, message, lien, modification du nom ou de l'e-mail.
-- **Écran d'envoi des invitations** (`Envoyer les invitations`) : sélection, aperçu, envoi individuel ou groupé, rappels, suivi de ce qui a été envoyé.
+- **Écran d'envoi des invitations** (`Envoyer les invitations`) : ajout des invités, sélection, aperçu, envoi individuel ou groupé, rappels, suivi de ce qui a été envoyé.
 - Cartes à imprimer avec un QR code par invité.
 - Export Excel à 6 onglets.
 
@@ -74,7 +74,7 @@ Avant de partager quoi que ce soit, ouvrez `config.js` et remplacez les prénoms
 ## Utilisation pas à pas
 
 1. **Personnalisez `config.js`** : prénoms, programme, adresses, textes.
-2. **Ajoutez les invités** dans `/admin` : une ligne par invité (une personne, un couple ou une famille), au format `Nom ; e-mail`. L'e-mail est facultatif pour ceux qui recevront un carton avec QR code.
+2. **Ajoutez les invités** dans `/admin/envois` (panneau « Ajouter des invités ») : une ligne par invité (une personne, un couple ou une famille), au format `Nom ; e-mail`. L'e-mail est facultatif pour ceux qui recevront un carton avec QR code.
 3. **Vérifiez le rendu** : ouvrez le lien d'un invité de test et parcourez le formulaire sur votre téléphone.
 4. **Envoyez les invitations** depuis `/admin/envois` (voir ci-dessous), et/ou **imprimez les cartes** avec le bouton « Imprimer les cartes QR ».
 5. **Suivez les réponses** dans `/admin`, ouvrez la fiche d'une famille avec « Détail », relancez ceux qui n'ont pas répondu.
@@ -86,7 +86,7 @@ Les invités peuvent corriger leurs réponses tant que leur invité n'est pas su
 
 ## Envoi des e-mails
 
-L'écran `/admin/envois` liste les invités avec, pour chacun : la réponse, l'état d'envoi (`Jamais envoyé`, `Envoyé le …`, `Échec`), un bouton **Aperçu** et un bouton **Envoyer** (ou **Renvoyer**).
+L'écran `/admin/envois` permet d'abord d'**ajouter des invités** (une ligne par invité, `Nom ; e-mail`), puis liste les invités avec, pour chacun : la réponse, l'état d'envoi (`Jamais envoyé`, `Envoyé le …`, `Échec`), un bouton **Aperçu** et un bouton **Envoyer** (ou **Renvoyer**).
 
 - **Filtres** : Tous, Jamais envoyé, Sans réponse, Sans e-mail.
 - **Envoi groupé** : cochez des invités (la case de l'en-tête sélectionne toute la vue), puis « Envoyer l'invitation » ou « Envoyer un rappel ». Une confirmation indique combien d'invités l'ont déjà reçue.
@@ -221,7 +221,7 @@ Les routes `/api/admin/*` et les pages `/admin*` exigent l'authentification HTTP
 | Méthode | Route | Rôle |
 |---|---|---|
 | `GET` | `/api/admin/guests` | Liste complète des invités, avec liens |
-| `POST` | `/api/admin/guests` | Ajoute des invités : `{ "guests": [{ "name", "email" }] }` |
+| `POST` | `/api/admin/guests` | Ajoute des invités (utilisé par l'écran d'envoi) : `{ "guests": [{ "name", "email" }] }` |
 | `GET` | `/api/admin/guests/:id` | Détail d'un invité |
 | `PATCH` | `/api/admin/guests/:id` | Modifie le nom ou l'e-mail |
 | `DELETE` | `/api/admin/guests/:id` | Supprime l'invité et sa réponse |

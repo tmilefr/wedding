@@ -58,6 +58,7 @@
   function renderRows() {
     const list = visible();
     $('empty').hidden = list.length > 0;
+    $('empty').textContent = guests.length ? 'Aucun invité dans cette vue.' : 'Aucun invité pour l\'instant. Ajoutez-les avec le formulaire ci-dessus.';
     $('rows').replaceChildren(...list.map((g) => {
       const ok = validEmail(g.email);
       const r = g.response;
@@ -110,6 +111,18 @@
     document.querySelectorAll('#rows input[type=checkbox]:not(:disabled)').forEach((b) => { b.checked = e.target.checked; });
     visible().filter((g) => validEmail(g.email)).forEach((g) => (e.target.checked ? selected.add(g.id) : selected.delete(g.id)));
     updateBar();
+  });
+  $('addBtn').addEventListener('click', async () => {
+    const list = $('bulk').value.split('\n').map((l) => l.trim()).filter(Boolean)
+      .map((l) => { const [name, email] = l.split(/[;\t]/).map((x) => x.trim()); return { name, email: email || '' }; });
+    if (!list.length) { $('addMsg').textContent = 'Saisissez au moins un invité.'; return; }
+    try {
+      const r = await json('/api/admin/guests', { method: 'POST', body: JSON.stringify({ guests: list }) });
+      const noMail = list.filter((g) => !validEmail(g.email)).length;
+      $('bulk').value = '';
+      $('addMsg').textContent = `${r.added} invité(s) ajouté(s)` + (noMail ? `, dont ${noMail} sans adresse e-mail valide.` : '.');
+      await refresh();
+    } catch (e) { $('addMsg').textContent = `Échec de l'ajout : ${e.message}`; }
   });
   $('sendInv').addEventListener('click', () => send([...selected], 'invitation'));
   $('sendRap').addEventListener('click', () => send([...selected], 'rappel'));
