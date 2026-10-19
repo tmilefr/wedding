@@ -70,7 +70,7 @@ a { color: var(--bleuet); }
 .q { margin: 0 0 1.6rem; border: 0; padding: 0; min-width: 0; }
 .q > legend, .q > label.lbl { display: block; font-weight: 700; margin: 0 0 .55rem; padding: 0; }
 .hint { color: var(--doux); font-size: .93rem; margin: -.3rem 0 .6rem; }
-input[type=text], input[type=number], textarea, select {
+input[type=text], input[type=password], input[type=number], textarea, select {
   width: 100%; font: inherit; color: var(--encre); background: #fff;
   border: 1.5px solid var(--trait); border-radius: 10px; padding: .65rem .8rem;
 }
