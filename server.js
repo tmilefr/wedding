@@ -213,8 +213,20 @@ const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 const validEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e || '');
 const qrPng = (link) => QRCode.toBuffer(link, { margin: 1, width: 360, errorCorrectionLevel: 'M', color: { dark: '#27422f', light: '#ffffff' } });
 
+// Valeurs par défaut : un ancien config.js sans section « mail » continue de fonctionner
+const MAIL_DEFAULTS = {
+  subjectInvitation: `Notre mariage le ${config.dateShort || ''} : répondez à votre invitation`,
+  subjectRappel: 'Rappel : votre réponse à notre invitation de mariage',
+  invitationText:
+    "Nous nous marions et nous serions très heureux de vous compter parmi nous. Pour préparer au mieux cette fête, nous avons besoin de vos réponses : présence, couchages, repas, spécialités à partager.",
+  rappelText: "Petit rappel : nous n'avons pas encore reçu votre réponse à notre invitation. Cela nous aiderait beaucoup de la connaître pour organiser le week-end.",
+  buttonLabel: "Répondre à l'invitation",
+  signature: `${config.couple.first} & ${config.couple.second}`,
+};
+const mailCfg = { ...MAIL_DEFAULTS, ...(config.mail || {}) };
+
 function buildMail(g, kind, qrSrc) {
-  const m = config.mail;
+  const m = mailCfg;
   const link = linkFor(g);
   const rappel = kind === 'rappel';
   const subject = rappel ? m.subjectRappel : m.subjectInvitation;
